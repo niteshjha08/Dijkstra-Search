@@ -71,7 +71,7 @@ def check_direction(map_arr,node,direction):
                 # visited[idx].node_idx = len(visited) -1 
              
 
-def backtrack(visited_arr):
+def backtrack(map_arr,visited_arr):
     print("Backtracking now!")
     end_goal = visited_arr[len(visited_arr)-1]
     print()
@@ -83,9 +83,12 @@ def backtrack(visited_arr):
             if(visited_arr[i].node_idx==parent_idx):
                 end_goal = visited_arr[i]
                 optimal_path.append(end_goal)
+                map_arr[end_goal.location[0],end_goal.location[1]] = [255,0,0]
                 break
     optimal_path.append(end_goal)
     print("optimal path length:",len(optimal_path))
+    cv2.imshow('map_arr',map_arr)
+
 
 
 def print_visited(visited_arr):
@@ -97,7 +100,7 @@ node_count = 0
 def dijkstra_search(map_arr,curr_node,goal_location):
     # count=0
     while(curr_node.location!=goal_location):
-        print(curr_node.location)
+        # print(curr_node.location)
         # count+=1
         # print(count)
        
@@ -119,11 +122,15 @@ def dijkstra_search(map_arr,curr_node,goal_location):
         curr_node = visited[0]
         # print("selected: ",visited[0].cost,visited[0].location)
     print("Reached goal")
+    
     visited.append(curr_node)
     closed.append(curr_node)
 
-    print_visited(closed) 
-    backtrack(closed)
+    # print_visited(closed) 
+    backtrack(map_arr,closed)
+    cv2.waitKey(0)
+
+
       
 
 visited_map = np.zeros((252,402)) 
@@ -136,7 +143,7 @@ def main():
     # start_location = (65,350,0)
     # goal_location = (150,50,0)
     start_location = (2,2,0)
-    goal_location = (5,4,0)
+    goal_location = (50,50,0)
     # goal_location = (70,345,0)
 
     # cv2.circle(map_arr,(start_location[1],start_location[0]),4,(0,0,255),5)
