@@ -2,163 +2,140 @@
 import numpy as np
 from generate_map import define_obstacle_space
 import cv2
-# import sys
-# sys.setrecursionlimit(50000)
-# import enum
-class Node:
-    def __init__(self,location,cost=None,node_idx=None,parent_idx=None):
-        self.location = location
-        self.cost = cost
-        self.node_idx = node_idx
-        self.parent_idx = parent_idx
-    
-    
+# map_arr,curr_node_location,curr_node_values,goal_location,moveBindings,visited,closed,associations
+class DijkstraSearch:
+    def __init__(self,map_arr,start_location,goal_location, moveBindings):
+        self.map_arr = map_arr
+        self.goal_location = goal_location
+        self.moveBindings = moveBindings
+        self.start_location = start_location
+        self.node_count = 1
+        self.search_order = ['e','n','w','s','ne','nw','sw','se']
 
-# Directions : {associated movement delta, costs}
-moveBindings = {'e':[(0,1,0),1],'n':[(-1,0,0),1],'w':[(0,-1,0),1],'s':[(1,0,0),1],'ne':[(-1,1,0),1.4],\
-                'nw':[(-1,-1,0),1.4],'sw':[(1,-1,0),1.4],'se':[(1,1,0),1.4]}
+        # Format: {(location):[cost,node_idx,parent_idx]}
+        self.visited = {start_location:[0,0,None]}
+        self.closed = {}
 
-visited = []
-closed = []
-search_order = ['e','n','w','s','ne','nw','sw','se']
+        # Format: {node_idx:[parent_node,(location)]}
+        self.associations = {}
 
-#
-def assert_search_valid(map_arr,start,end):
+def assert_search_valid(search_state):
     print("checking...")
     # print(map_arr[start], map_arr[end])
-    if(map_arr[start]!=255 or map_arr[end]!=255):
+    if(search_state.map_arr[search_state.start_location]!=255 or search_state.map_arr[search_state.goal_location]!=255):
         print("Start or End location is inside an obstacle!")
-        exit
-    
+        return False
+    else:
+        return True
+
+def backtrack(search_state):
+    print("Backtracking now!")
+    end_goal_location = list(search_state.closed.keys())[-1]
+    search_state.map_arr[end_goal_location[0], end_goal_location[1]] = [255,0,0]
+    end_goal_values = search_state.closed[end_goal_location]
+    parent = end_goal_values[2]
+    optimal_path = [end_goal_location]
+    while(parent!=None):
+        parent_location = search_state.associations[parent][1]
+        optimal_path.append(parent_location)
+        search_state.map_arr[parent_location[0], parent_location[1]] = [255,0,0]
+        parent = search_state.associations[parent][0]
+
+    print("optimal path length:",len(optimal_path))
+    cv2.imshow('map_arr',search_state.map_arr)
+
 
 # Function which checks if a node is visited, if it has, returns the current cost, else returns -1
-def check_visited(location):
-    for i in range(len(visited)-1,-1,-1):
-    # for idx,node in enumerate(visited):
-        # print("comparing: ",node.location," and ",location)
-        if(visited[i].location == location):
-            return visited[i].cost,i
-        # else:
-    return -1,None
+def check_visited(visited,location):
+    try:
+        cost = visited[location]
+    except:
+        cost = None
+    return cost
 
-def check_closed(location):
-    for node in closed:
-        if(node.location[0]==location[0] and node.location[1]==location[1]):
-            return True  
-    return False
+def check_closed(closed,location):
+    try:
+        _ = closed[location]
+        return True
+    except:
+        return False
 
-def check_direction(map_arr,node,direction):
-    global node_count
+def check_direction(search_state,curr_node_location,curr_node_values,direction):
     # check if location is an obstacle or not
-    check_location = tuple([sum(x) for x in zip(moveBindings[direction][0],node.location)])
-    # print("check_location:",check_location)
-    if(map_arr[check_location]) == 0:
+    check_location = tuple([sum(x) for x in zip(search_state.moveBindings[direction][0],curr_node_location)])
+    if(search_state.map_arr[check_location]) == 0:
         # print('obstacle found, returning')
         return
+
     # if the location is never visited, append location and cost
-    check_res,idx = check_visited(check_location)
-    # print("check_res for loc:",check_res)
-    if not check_closed(check_location):
-        if(check_res) == -1:
-            new_node = Node(check_location,node.cost + moveBindings[direction][1],node_count,node.node_idx)
-            map_arr[new_node.location[0],new_node.location[1]] = [0,255,0]
-            visited.append(new_node)
-            node_count+=1
+    check_res = check_visited(search_state.visited,check_location)
+    if not check_closed(search_state.closed, check_location):
+        if check_res is None:
+            search_state.map_arr[check_location[0],check_location[1]] = [0,255,0]
+            search_state.visited[check_location] = [curr_node_values[0] + search_state.moveBindings[direction][1], search_state.node_count, curr_node_values[1]]
+            search_state.node_count+=1
         # if location has been visited, check if new cost is lower. If so, modify the node.
         else:
-            if(check_res > node.cost + moveBindings[direction][1]):
-                visited[idx].cost = node.cost + moveBindings[direction][1]
-                # visited[idx].node_idx = len(visited) -1 
+            if(check_res > curr_node_values[0] + search_state.moveBindings[direction][1]):
+                search_state.visited[check_location][0] = curr_node_values[0] + search_state.moveBindings[direction][1]
              
 
-def backtrack(map_arr,visited_arr):
-    print("Backtracking now!")
-    end_goal = visited_arr[len(visited_arr)-1]
-    print()
-    optimal_path = [end_goal]
-    while(end_goal.parent_idx!=None):
-        print(end_goal.location,end_goal.node_idx,end_goal.parent_idx)
-        parent_idx = end_goal.parent_idx
-        for i in range(len(visited_arr)-1,-1,-1):
-            if(visited_arr[i].node_idx==parent_idx):
-                end_goal = visited_arr[i]
-                optimal_path.append(end_goal)
-                map_arr[end_goal.location[0],end_goal.location[1]] = [255,0,0]
-                break
-    optimal_path.append(end_goal)
-    print("optimal path length:",len(optimal_path))
-    cv2.imshow('map_arr',map_arr)
+def dijkstra_search(search_state,visualize_search):
+    curr_node_location = search_state.start_location
+    curr_node_values = search_state.visited[curr_node_location]
 
+    while(curr_node_location!=search_state.goal_location):     
 
+        # Search all directions, if not visited, append, else modify only if lower cost is found
+        for direction in search_state.search_order:
+            check_direction(search_state,curr_node_location,curr_node_values,direction)
 
-def print_visited(visited_arr):
-    a=[(visited_arr[i].location,visited_arr[i].node_idx,visited_arr[i].parent_idx) for i in range(len(visited_arr))]
-    print("closed_costs:")
-    print(a)
+        # Visualization
+        if visualize_search:
+            cv2.imshow('map_arr',search_state.map_arr)
+            cv2.waitKey(1)
+        # Mark curr_location to closed nodes
+        search_state.closed[curr_node_location] = curr_node_values
+        # Save Parent-child relationship
+        search_state.associations[curr_node_values[1]] = [curr_node_values[2],curr_node_location]
 
-node_count = 0
-def dijkstra_search(map_arr,curr_node,goal_location):
-    # count=0
-    while(curr_node.location!=goal_location):
-        # print(curr_node.location)
-        # count+=1
-        # print(count)
-       
-        if(curr_node.location==goal_location):
-            print("Reached goal")
-            break
-        for direction in search_order:
-            # print(len(visited))
-            check_direction(map_arr,curr_node,direction)
-
-        # visited.sort(key = lambda c: c.cost)
-        cv2.imshow('map_arr',map_arr)
-        cv2.waitKey(1)
-        closed.append(curr_node)
-        visited.pop(0)
+        # Pop first visited element and sort for next iteration
+        search_state.visited.pop(next(iter(search_state.visited)))        
+        search_state.visited = {k: v for k, v in sorted(search_state.visited.items(), key=lambda item: item[1])}  # Sort visited based on cost
         
-        visited.sort(key = lambda c: c.cost)
-        # print_visited(visited)
-        curr_node = visited[0]
-        # print("selected: ",visited[0].cost,visited[0].location)
+         # Set first node of visited as curr_node_location
+        curr_node_location = next(iter(search_state.visited))
+        curr_node_values = search_state.visited[curr_node_location]
+        
     print("Reached goal")
     
-    visited.append(curr_node)
-    closed.append(curr_node)
+    # Save goal locations and parent-child associations
+    search_state.visited[curr_node_location]=curr_node_values
+    search_state.closed[curr_node_location]=curr_node_values
+    search_state.associations[curr_node_values[1]] = [curr_node_values[2],curr_node_location]
 
-    # print_visited(closed) 
-    backtrack(map_arr,closed)
+    # Traverse backwards till start location
+    backtrack(search_state)
     cv2.waitKey(0)
 
-
-      
-
-visited_map = np.zeros((252,402)) 
-cost_map = np.ones((252,402)) * 1000
-
 def main():
-    global node_count
+
     map_arr = define_obstacle_space()
-    
-    # start_location = (65,350,0)
-    # goal_location = (150,50,0)
     start_location = (2,2,0)
-    goal_location = (50,50,0)
-    # goal_location = (70,345,0)
-
-    # cv2.circle(map_arr,(start_location[1],start_location[0]),4,(0,0,255),5)
-    # cv2.circle(map_arr,(goal_location[1],goal_location[0]),4,(0,0,255),5)
-    # cv2.imshow('map',map_arr)
-    # cv2.waitKey()
-
-    assert_search_valid(map_arr,start_location,goal_location)
+    goal_location = (200,230,0)
+    visualize_search = False
     
-    curr_node = Node(start_location,0,0,None)
-    visited.append(curr_node)
-    node_count+=1
-    # print(moveBindings['e'][0] + start_location)
-    # print(map_arr[start_location])
-    dijkstra_search(map_arr,curr_node,goal_location)
+    # Directions : {associated movement delta, costs}
+    moveBindings = {'e':[(0,1,0),1],'n':[(-1,0,0),1],'w':[(0,-1,0),1],'s':[(1,0,0),1],'ne':[(-1,1,0),1.4],\
+                    'nw':[(-1,-1,0),1.4],'sw':[(1,-1,0),1.4],'se':[(1,1,0),1.4]}
+
+    search_state = DijkstraSearch(map_arr,start_location,goal_location, moveBindings)
+
+    if not(assert_search_valid(search_state)):
+        return
+    
+    dijkstra_search(search_state,visualize_search)
+
 
 if __name__=="__main__":
     main()
