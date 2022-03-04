@@ -2,7 +2,7 @@
 import numpy as np
 from generate_map import define_obstacle_space
 import cv2
-# map_arr,curr_node_location,curr_node_values,goal_location,moveBindings,visited,closed,associations
+
 class DijkstraSearch:
     def __init__(self,map_arr,start_location,goal_location, moveBindings):
         self.map_arr = map_arr
@@ -21,7 +21,6 @@ class DijkstraSearch:
 
 def assert_search_valid(search_state):
     print("checking...")
-    # print(map_arr[start], map_arr[end])
     if(search_state.map_arr[search_state.start_location]!=255 or search_state.map_arr[search_state.goal_location]!=255):
         print("Start or End location is inside an obstacle!")
         return False
@@ -64,7 +63,6 @@ def check_direction(search_state,curr_node_location,curr_node_values,direction):
     # check if location is an obstacle or not
     check_location = tuple([sum(x) for x in zip(search_state.moveBindings[direction][0],curr_node_location)])
     if(search_state.map_arr[check_location]) == 0:
-        # print('obstacle found, returning')
         return
 
     # if the location is never visited, append location and cost
@@ -119,7 +117,6 @@ def dijkstra_search(search_state,visualize_search):
     cv2.waitKey(0)
 
 def main():
-
     map_arr = define_obstacle_space()
     start_location = (2,2,0)
     goal_location = (200,230,0)
