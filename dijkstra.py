@@ -2,15 +2,17 @@
 import numpy as np
 from generate_map import define_obstacle_space
 import cv2
+import random
 
 class DijkstraSearch:
-    def __init__(self,map_arr,start_location,goal_location, moveBindings):
+    def __init__(self,map_arr,start_location,goal_location, moveBindings,search_clearance):
         self.map_arr = map_arr
         self.goal_location = goal_location
         self.moveBindings = moveBindings
         self.start_location = start_location
         self.node_count = 1
         self.search_order = ['e','n','w','s','ne','nw','sw','se']
+        self.clearance = search_clearance
 
         # Format: {(location):[cost,node_idx,parent_idx]}
         self.visited = {start_location:[0,0,None]}
@@ -20,12 +22,19 @@ class DijkstraSearch:
         self.associations = {}
 
 def assert_search_valid(search_state):
-    print("checking...")
-    if(search_state.map_arr[search_state.start_location]!=255 or search_state.map_arr[search_state.goal_location]!=255):
-        print("Start or End location is inside an obstacle!")
+    print("checking search validity...")
+    try:
+        if(min(np.min(search_state.map_arr[search_state.start_location[0]-search_state.clearance:search_state.start_location[0]+search_state.clearance+1,search_state.start_location[1]-search_state.clearance:search_state.start_location[1]+search_state.clearance+1]),\
+            np.min(search_state.map_arr[search_state.goal_location[0]-search_state.clearance:search_state.goal_location[0]+search_state.clearance+1,search_state.goal_location[1]-search_state.clearance:search_state.goal_location[1]+search_state.clearance+1])))== 0 :
+            print("Obstacle/boundaries near start or end locations")
+            return False
+        else:
+            return True
+    except Exception as e:
+        # print(e)
+        print("Obstacle/boundaries near start or end locations OR not in map_range")
         return False
-    else:
-        return True
+
 def visualize(search_state,frame_skip):
     frame = 0
     for location in search_state.closed:
@@ -40,7 +49,7 @@ def visualize(search_state,frame_skip):
 def backtrack(search_state):
     print("Backtracking now!")
     end_goal_location = list(search_state.closed.keys())[-1]
-    cv2.circle(search_state.map_arr,(end_goal_location[1],end_goal_location[0]),3,(0,0,255),-1)
+    cv2.circle(search_state.map_arr,(end_goal_location[1],end_goal_location[0]),5,(0,0,255),-1)
     search_state.map_arr[end_goal_location[0], end_goal_location[1]] = [0,0,255]
     end_goal_values = search_state.closed[end_goal_location]
     parent = end_goal_values[2]
@@ -51,7 +60,7 @@ def backtrack(search_state):
         search_state.map_arr[parent_location[0], parent_location[1]] = [0,0,255]
         parent = search_state.associations[parent][0]
 
-    cv2.circle(search_state.map_arr,(parent_location[1],parent_location[0]),3,(255,0,0),-1)
+    cv2.circle(search_state.map_arr,(parent_location[1],parent_location[0]),5,(255,0,0),-1)
     print("optimal path length:",len(optimal_path))
     cv2.imshow('map_arr',search_state.map_arr)
 
@@ -76,7 +85,7 @@ def check_direction(search_state,curr_node_location,curr_node_values,direction):
     # check if location is an obstacle or not
     check_location = tuple([sum(x) for x in zip(search_state.moveBindings[direction][0],curr_node_location)])
 
-    if((search_state.map_arr[check_location[0],check_location[1]])== [0,0,0]).all() :
+    if(np.min(search_state.map_arr[check_location[0]-search_state.clearance:check_location[0]+search_state.clearance+1,check_location[1]-search_state.clearance:check_location[1]+search_state.clearance+1]))== 0 :
         return
     
     # if the location is never visited, append location and cost
@@ -127,21 +136,34 @@ def dijkstra_search(search_state,visualize_search):
 
 def main():
     map_arr = define_obstacle_space()
-    start_location = (10,2,0)
-    goal_location = (249,399,0)
+    start_location = (random.randint(0,250)+1,random.randint(1,400)+1,0)
+    goal_location = (random.randint(0,250)+1,random.randint(1,400)+1,0)
+    search_clearance = 5
+    # start_location = (6,6,0)
+    # goal_location = (192,189,0)
+    print("start:",start_location)
+    print("goal:",goal_location)
+    
     visualize_search = True
     
-    # Directions : {associated movement delta, costs}
+    # Format: {Directions : [associated movement delta, costs]}
     moveBindings = {'e':[(0,1,0),1],'n':[(-1,0,0),1],'w':[(0,-1,0),1],'s':[(1,0,0),1],'ne':[(-1,1,0),1.4],\
                     'nw':[(-1,-1,0),1.4],'sw':[(1,-1,0),1.4],'se':[(1,1,0),1.4]}
 
-    search_state = DijkstraSearch(map_arr,start_location,goal_location, moveBindings)
+    search_state = DijkstraSearch(map_arr,start_location,goal_location, moveBindings,search_clearance)
 
     if not(assert_search_valid(search_state)):
+        cv2.circle(search_state.map_arr,(goal_location[1],goal_location[0]),search_clearance,(0,0,255),-1)
+        cv2.circle(search_state.map_arr,(start_location[1],start_location[0]),search_clearance,(255,0,0),-1)
+        cv2.imshow('map_arr',search_state.map_arr)
+        cv2.waitKey(0)
         return
     
     dijkstra_search(search_state,visualize_search)
 
 
 if __name__=="__main__":
+    # for testcase in range(50):
+    #     cv2.destroyAllWindows()
+    #     main()
     main()

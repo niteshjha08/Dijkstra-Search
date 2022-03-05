@@ -33,7 +33,7 @@ def define_circle():
     return map_arr
 
 def define_hexagon(): 
-    map_arr = np.zeros((252,402,3),dtype='uint8')
+    map_arr = np.zeros((250,400,3),dtype='uint8')
     hexagon = np.array([[236,171],[236,131],[201,111],[166,131],[166,171],[201,191]])
     side1 = half_plane(map_arr,hexagon[0],hexagon[1])
     side2 = cv2.bitwise_or(half_plane(map_arr,hexagon[2],hexagon[1],False),side1)
