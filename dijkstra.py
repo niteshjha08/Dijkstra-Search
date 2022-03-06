@@ -3,6 +3,7 @@ import numpy as np
 from generate_map import define_obstacle_space
 import cv2
 import random
+import argparse
 
 class DijkstraSearch:
     def __init__(self,map_arr,start_location,goal_location, moveBindings,search_clearance):
@@ -29,6 +30,7 @@ def assert_search_valid(search_state):
             print("Obstacle/boundaries near start or end locations")
             return False
         else:
+            print("Valid, searching now...")
             return True
     except Exception as e:
         # print(e)
@@ -136,11 +138,25 @@ def dijkstra_search(search_state,visualize_search):
 
 def main():
     map_arr = define_obstacle_space()
-    start_location = (random.randint(0,250)+1,random.randint(1,400)+1,0)
-    goal_location = (random.randint(0,250)+1,random.randint(1,400)+1,0)
+    # start_location = (random.randint(0,250)+1,random.randint(1,400)+1,0)
+    # goal_location = (random.randint(0,250)+1,random.randint(1,400)+1,0)
+
+    Parser = argparse.ArgumentParser()
+    Parser.add_argument('--start_location_x', default="50", help='x coordinate of the start location, Default: 50')
+    Parser.add_argument('--start_location_y', default="150", help='y coordinate of the start location, Default: 150')
+    Parser.add_argument('--goal_location_x', default="200", help='x coordinate of the goal location, Default: 200')
+    Parser.add_argument('--goal_location_y', default="300", help='y coordinate of the goal location, Default: 300')
+
+    Args = Parser.parse_args()
+    start_x = int(Args.start_location_x)
+    start_y = int(Args.start_location_y)
+    goal_x = int(Args.goal_location_x)
+    goal_y = int(Args.goal_location_y)
+
+
     search_clearance = 5
-    # start_location = (6,6,0)
-    # goal_location = (192,189,0)
+    start_location = (start_x,start_y,0)
+    goal_location = (goal_x,goal_y,0)
     print("start:",start_location)
     print("goal:",goal_location)
     
