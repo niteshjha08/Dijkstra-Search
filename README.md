@@ -23,4 +23,4 @@ Modify the start and goal locations if this is encountered.
 #### Visualization
 To speed up visualization of the search, a frame skip of 50 is set by default.
 
-<!-- ![viz](files/Users/jzhang/Desktop/Isolated.png) -->
+![viz](https://github.com/niteshjha08/Dijkstra-Search/blob/main/media/viz.gif)
