@@ -2,7 +2,7 @@
 Use of Dijkstra algorithm to search for optimal path between a given initial and final position in a custom-generated map.
 
 ### Run the code
- Execute `python3 Dijkstra-pathplanning-Nitesh-Jha.py --start_location_x 50 --start_location_y 150 --goal_location_x 200 --goal_location_y 300` where (50,150) will be start_location and (200,300) will be the goal_location. Enter these values in the command as desired.
+ Execute `python3 dijkstra.py --start_location_x 50 --start_location_y 150 --goal_location_x 200 --goal_location_y 300` where (50,150) will be start_location and (200,300) will be the goal_location. Enter these values in the command as desired.
 The current search is set by default to start from (50,150) and go to (200,300)
 
 ### Implementation details:
